@@ -1594,7 +1594,7 @@ class BoardAnalysis(QWidget):
         self.player_ids = player_ids
         self.layout = QVBoxLayout(self)
 
-        self.last_brawl = QSplitter(Qt.Horizontal)
+        self.last_brawl = QSplitter(Qt.Vertical)
         # Submit analysis button
         btn_widget = QWidget()
         btn_layout = QHBoxLayout(btn_widget)
@@ -1603,20 +1603,23 @@ class BoardAnalysis(QWidget):
         btn_layout.addWidget(submit_button)
         self.last_brawl.addWidget(btn_widget)
         # Submit analysis tab
-        self.player_board = BoardComp(scale=0.5)
         self.opponent_board = BoardComp(scale=0.5)
-        self.last_brawl.addWidget(self.player_board)
+        self.player_board = BoardComp(scale=0.5)
+        # opponent first to kinda look like a brawl
         self.last_brawl.addWidget(self.opponent_board)
+        self.last_brawl.addWidget(self.player_board)
 
         # Simulation results tab
         self.sim_results = QWidget()
         self.simulated_stats = BoardAnalysisSimulationResults(self.sim_results)
+        self.sim_results.move(600, 0)
         self.results_board = BoardComp(scale=0.5)
+        self.results_board.move(600, 0)
 
         # Put it all together
-        self.layout.addWidget(self.last_brawl)
         self.layout.addWidget(self.sim_results)
         self.layout.addWidget(self.results_board)
+        self.layout.addWidget(self.last_brawl)
 
         self.analysis_queue = Queue()
         self.simulation_manager = SimulationManager(
@@ -1672,111 +1675,11 @@ class ActiveCondition:
         )
 
 
-
-
-class BoardAnalysisOverlay(QWidget):
-    simluation_update = Signal(str, str, str, str, str)
-
-    def __init__(self, parent):
-        super().__init__()
-        self.setAttribute(Qt.WA_TranslucentBackground, True)
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.SubWindow)
-        self.setWindowTitle("SBBTrackerOverlay")
-
-        self.simulated_board = QSplitter(Qt.Horizontal)
-        # Submit analysis tab
-        self.player_board = BoardComp(scale=0.5)
-        self.opponent_board = BoardComp(scale=0.5)
-        self.simulated_board.addWidget(self.player_board)
-        self.simulated_board.addWidget(self.opponent_board)
-        self.main_frame = QFrame()
-        self.main_frame.move(300, 700)
-        self.layout = QHBoxLayout(self.main_frame)
-        self.layout.addWidget(self.simulated_board)
-        self.msg = QLabel("all boards equal")
-        self.layout.addWidget(self.simulated_board)
-        self.layout.addWidget(self.msg)
-        self.msg.setVisible(False)
-
-        self.visible = True
-        self.scale_factor = 1
-        self.dpi_scale = 1
-        self.hover_region = HoverRegion(
-            parent, *map(
-                operator.mul, (400, 80), (self.scale_factor, self.scale_factor)
-            )
-        )
-        self.base_comp_size = QSize(550, 325)
-        self.disable_hover()
-        self.update_comp_scaling()
-        self.enable_hover()
-
-        self.hover_region.move(420, 85)
-        size = QSize(210, 80)
-        self.hover_region.resize(size)
-        self.hover_region.background.setFixedSize(size)
-        self.hover_region.enter_hover.connect(lambda: self.show_hide_comp(True))
-        self.hover_region.leave_hover.connect(lambda: self.show_hide_comp(False))
-
-
-    def visible_in_bg(self, visible):
-        self.visible = visible
-        self.setVisible(visible)
-
-    def disable_hover(self):
-        self.hover_region.setVisible(False)
-
-    def enable_hover(self):
-        self.hover_region.setVisible(True)
-
-    def show_hide_comp(self, show_or_hide: bool):
-        self.main_frame.setVisible(show_or_hide)
-
-    def update_round(self, round_num):
-        self.turn_display.update_label(f"Turn {round_num} ({round_to_xp(round_num)})")
-        if self.stream_overlay:
-            self.stream_overlay.update_round(round_num)
-
-    def update_comps(self, player_board, opponent_board):
-        self.simulated_board.setVisible(True)
-        self.msg.setVisible(False)
-        self.player_board.composition = player_board
-        self.player_board.last_seen = 0
-        self.player_board.current_round = 0
-        self.opponent_board.composition = opponent_board
-        self.opponent_board.last_seen = 0
-        self.opponent_board.current_round = 0
-        self.update()
-
-    def update_comp_scaling(self):
-        self.player_board.setFixedSize(self.base_comp_size) # * comp.scale)
-        self.opponent_board.setFixedSize(self.base_comp_size) # * comp.scale)
-        self.player_board.updateGeometry()
-        self.opponent_board.updateGeometry()
-
-    def set_transparency(self):
-        alpha = (100 - settings.get(settings.boardcomp_transparency, 0)) / 100
-        style = f"background-color: rgba({default_bg_color_rgb}, {alpha});"
-        self.hover_region.setStyleSheet(style)
-
-    def toggle_transparency(self):
-        if settings.get(settings.streaming_mode):
-            self.setWindowFlags(self.windowFlags() | Qt.SubWindow)
-        else:
-            self.setWindowFlags(Qt.SubWindow)
-
-    def show_error(self):
-        self.simulated_board.setVisible(False)
-        self.msg.setVisible(True)
-        self.update()
-
-
 class BoardAnalysisSimulationResults(QWidget):
     def __init__(self, parent):
         super().__init__(parent)
         self.sim_is_done = True
         self.parent = parent
-        self.move(420, 85)
 
         self.layout = QStackedLayout(self)
         background = QFrame(self)
