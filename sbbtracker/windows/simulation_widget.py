@@ -87,9 +87,6 @@ class SimulationThread(QThread):
 
 
 class SimulationManager(QThread):
-    # Maybe have good errors?
-    # end_simulation = Signal(str, str, str, str, str)
-    # error_simulation = Signal(str)
 
     def __init__(self, analysis_queue, simulated_stats, results_board):
         super(SimulationManager, self).__init__()
@@ -149,8 +146,6 @@ class SimulationManager(QThread):
             6: (2, 3, 5),
         }[int(slot)]
 
-        print(f"looking to move character in {slot=}")
-
         return [
             (slot, slot_dest)
             for slot_dest in slot_dests
@@ -197,8 +192,6 @@ class SimulationManager(QThread):
         self.all_boards_equal = False
         while True:
             board = self.analysis_queue.get()
-            print(board["player"])
-            print(list(map(type, board["player"])))
             playerid = "player"
             # search for one local maxima
             current_board = None
@@ -206,19 +199,17 @@ class SimulationManager(QThread):
             best_boards = []
             for _ in range(3):
                 if current_board is None:
-                    print("starting search from player board state")
+                    self.results_board.custom_message = "Starting from your board."
                     current_board = ActiveCondition(board)
                 else:
-                    print("starting search from random board state")
+                    self.results_board.custom_message = "Restarting from random board."
                     current_board = ActiveCondition(
                         rearrange.randomize_board(board)
                     )
                 board_hash = self.hash(current_board.board)
-                print(f"{board_hash=}")
                 # self.active_condition will concurrently be update with its results
                 self.active_condition = current_board
                 self.sim_is_done = False
-                print(f"running {num_simulations} simulations")
                 self.queue.put(
                     # TODO: if ambrosia, error/warn
                     (
@@ -237,7 +228,6 @@ class SimulationManager(QThread):
                 self.simulated_stats.update_chances(
                     *current_board.chances(),
                 )
-                print(f"Initial result was:\n  {self.active_condition.chances()}")
                 self.simulated_boards.append(board_hash)
                 # if all options get worse/stay the same, break
                 best_boards.append(self.active_condition)
@@ -264,7 +254,6 @@ class SimulationManager(QThread):
 
                             # should make this an @cachedproperty of ActiveConditon
                             board_hash = self.hash(new_board)
-                            print(f"{board_hash=}")
                             if board_hash in self.simulated_boards:
                                 continue
                             self.active_condition = ActiveCondition(new_board)
@@ -272,7 +261,6 @@ class SimulationManager(QThread):
                             # self.active_condition will concurrently be update with its results
                             step_results.append(self.active_condition)
                             self.sim_is_done = False
-                            print(f"running {num_simulations} simulations")
                             self.queue.put(
                                 # TODO: if ambrosia, error/warn
                                 (
@@ -289,7 +277,6 @@ class SimulationManager(QThread):
                             self.simulated_boards.append(board_hash)
 
                         if not step_results:
-                            print("all neighbors previously simulated")
                             break
 
                         max_res = max(map(lambda condition: condition.win, step_results))
@@ -300,10 +287,9 @@ class SimulationManager(QThread):
                         )
                         # if all options get worse/stay the same, do a random restart
                         if max_res <= last_res:
-                            print("No step yields better result")
                             best_boards.append(current_board)
                             break
-                        print(f"best result was: {best_step.move=}\n  {best_step.chances()}")
+                        self.results_board.custom_message = "Searching for improvements."
                         current_board = best_step
                         last_moved_to = best_step.move[-1]
                         last_res = max_res
@@ -320,21 +306,21 @@ class SimulationManager(QThread):
                 for condition in best_boards
                 if condition.win == best_result
             )
-            # move is (from, to)
             self.results_board.composition = best_board.board["player"]
             self.results_board.update()
             self.simulated_stats.update_chances(
                 *best_board.chances(),
             )
-            print("SIMULATION DONE")
+            self.results_board.custom_message = "This is the best board found."
 
 class BoardAnalysis(QWidget):
     def __init__(self, size, player_ids):
         super().__init__()
         self.player_ids = player_ids
-        self.layout = QVBoxLayout(self)
+        self.layout = QHBoxLayout(self)
 
-        self.last_brawl = QSplitter(Qt.Horizontal)
+        self.last_brawl = QSplitter(Qt.Vertical)
+
         # Submit analysis button
         btn_widget = QWidget()
         btn_layout = QHBoxLayout(btn_widget)
@@ -342,21 +328,25 @@ class BoardAnalysis(QWidget):
         submit_button.clicked.connect(self.run_simulations)
         btn_layout.addWidget(submit_button)
         self.last_brawl.addWidget(btn_widget)
-        # Submit analysis tab
-        self.player_board = BoardComp(scale=0.5)
+
+        # Boards to be simulated
         self.opponent_board = BoardComp(scale=0.5)
-        self.last_brawl.addWidget(self.player_board)
         self.last_brawl.addWidget(self.opponent_board)
+        self.player_board = BoardComp(scale=0.5)
+        self.last_brawl.addWidget(self.player_board)
 
         # Simulation results tab
-        self.sim_results = QWidget()
-        self.simulated_stats = BoardAnalysisSimulationResults(self.sim_results)
+        results_splitter = QSplitter(Qt.Vertical)
+        sim_results = QWidget()
+        self.simulated_stats = BoardAnalysisSimulationResults(sim_results)
         self.results_board = BoardComp(scale=0.5)
+
+        results_splitter.addWidget(self.results_board)
+        results_splitter.addWidget(self.simulated_stats)
 
         # Put it all together
         self.layout.addWidget(self.last_brawl)
-        self.layout.addWidget(self.sim_results)
-        self.layout.addWidget(self.results_board)
+        self.layout.addWidget(results_splitter)
 
         self.analysis_queue = Queue()
         self.simulation_manager = SimulationManager(

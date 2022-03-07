@@ -26,6 +26,7 @@ class BoardComp(QWidget):
         self.current_round = 0
         self.player = None
         self.scale = scale
+        self.custom_message = None
 
         self.number_display_font = QFont(display_font_family, 25, weight=QFont.ExtraBold)
 
@@ -159,20 +160,32 @@ class BoardComp(QWidget):
         else:
             painter.eraseRect(QRect(0, 0, 1350, 820))
             self.draw_hero(painter)
-        last_seen_text = ""
-        if self.last_seen is not None:
-            if self.last_seen == 0:
-                last_seen_text = "Last seen just now"
-            elif self.last_seen > 0:
-                last_seen_text = f"Last seen {self.current_round - self.last_seen}"
-                if self.current_round - self.last_seen == 1:
-                    last_seen_text += " turn ago"
-                else:
-                    last_seen_text += " turns ago"
+        if self.custom_message:
+            last_seen_text = self.custom_message
         else:
-            last_seen_text = "Not yet seen"
+            last_seen_text = ""
+            if self.last_seen is not None:
+                if self.last_seen == 0:
+                    last_seen_text = "Last seen just now"
+                elif self.last_seen > 0:
+                    last_seen_text = f"Last seen {self.current_round - self.last_seen}"
+                    if self.current_round - self.last_seen == 1:
+                        last_seen_text += " turn ago"
+                    else:
+                        last_seen_text += " turns ago"
+            else:
+                last_seen_text = "Not yet seen"
         painter.setPen(QPen(QColor("white"), 1))
         seen_font = QFont("Roboto")
         seen_font.setPixelSize(20)
         painter.setFont(seen_font)
         painter.drawText(10, 25, last_seen_text)
+
+    def draw_message(self, msg):
+        painter = QPainter(self)
+        painter.scale(self.scale, self.scale)
+        painter.setPen(QPen(QColor("white"), 1))
+        seen_font = QFont("Roboto")
+        seen_font.setPixelSize(20)
+        painter.setFont(seen_font)
+        painter.drawText(10, 25, msg)

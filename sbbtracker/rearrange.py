@@ -42,7 +42,6 @@ def randomize_board(board):
 
 
 def apply_permutation(board, permute_map):
-    print("APPLY PERMUTATION")
     # don't permute in place
     board_stated = Board(
         from_state(
@@ -57,7 +56,6 @@ def apply_permutation(board, permute_map):
     characters = board_stated.p1.valid_characters()
     board_stated.p1.despawn(*characters, kill=False)
 
-    print(f"{permute_map=}")
     for character in characters:
         board_stated.p1.spawn(
             character,
