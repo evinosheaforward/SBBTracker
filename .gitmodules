@@ -1,4 +1,5 @@
 [submodule "sbbtracker/SBBBattleSim"]
 	path = sbbtracker/SBBBattleSim
 	url = https://github.com/evinosheaforward/SBBBattleSim.git
+[submodule "sbbtracker/SBBBattleSim"]
 	branch = rearrange-boards
