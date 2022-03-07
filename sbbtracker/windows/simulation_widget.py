@@ -103,34 +103,11 @@ class SimulationManager(QThread):
         self.simulation.start()
 
     def sim_error(self, *args, **kwargs):
-        self.active_conditions.remove(self.active_condition)
+        self.results_board.custom_message = "Simulation Error."
 
     def update_chances(self, win, tie, loss, win_dmg, loss_dmg):
         self.active_condition.update_reward(win, tie, loss, win_dmg, loss_dmg)
         self.sim_is_done = True
-
-    def eliminate(self):
-        mean_win = median([cond.win for cond in self.active_conditions])
-        to_remove = []
-        for active_condition in self.active_conditions:
-            if active_condition.win < mean_win:
-                to_remove.append(active_condition)
-
-        for active_condition in to_remove:
-            self.active_conditions.remove(active_condition)
-
-    def best_board(self):
-        max_win = max(cond.win for cond in self.active_conditions)
-        return next(cond for cond in self.active_conditions if cond.win == max_win)
-
-    def stop_condition(self):
-        if len(self.active_conditions) == 1:
-            return True
-        elif len(set(cond.win for cond in self.active_conditions)) == 1:
-            self.all_boards_equal = True
-            return True
-        else:
-            return False
 
     # This should move into the simulator to include supports and treasures
     @staticmethod
