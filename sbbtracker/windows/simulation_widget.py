@@ -102,8 +102,8 @@ class SimulationManager(QThread):
         self.simulation.error_simulation.connect(self.sim_error)
         self.simulation.start()
 
-    def sim_error(self, *args, **kwargs):
-        self.results_board.custom_message = "Simulation Error."
+    def sim_error(self, error_msg, *args, **kwargs):
+        self.results_board.custom_message = error_msg
 
     def update_chances(self, win, tie, loss, win_dmg, loss_dmg):
         self.active_condition.update_reward(win, tie, loss, win_dmg, loss_dmg)
@@ -167,9 +167,9 @@ class SimulationManager(QThread):
         num_simulations = 1000 # settings.get(settings.number_threads, 3)
         num_threads = settings.get(settings.number_threads, 3)
         self.all_boards_equal = False
+        playerid = "player"
         while True:
             board = self.analysis_queue.get()
-            playerid = "player"
             # search for one local maxima
             current_board = None
             self.simulated_boards = []
