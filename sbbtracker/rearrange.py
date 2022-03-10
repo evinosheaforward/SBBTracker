@@ -62,8 +62,28 @@ def apply_permutation(board, permute_map):
             position=permute_map.get(character.position, character.position),
         )
 
+    new_player_state = convert_state_to_action_json(
+        board_stated.to_state()
+    )["player"]
+    new_player_board = []
+    new_player_state["hero"]["zone"] = "Hero"
+    new_player_board.append(Action.from_state(new_player_state["hero"]))
 
-    return convert_state_to_action_json(board_stated)
+    for character in new_player_state["characters"]:
+        character["zone"] = "Character"
+        new_player_board.append(Action.from_state(character))
+
+    for treasure in new_player_state["treasures"]:
+        treasure["zone"] = "Treasure"
+        new_player_board.append(Action.from_state(treasure))
+    for spell in new_player_state["spells"]:
+        spell["zone"] = "Spell"
+        new_player_board.append(Action.from_state(spell))
+
+    return {
+        "player": new_player_board,
+        "opponent": board["opponent"],
+    }
 
 
 def convert_state_to_action_json(board):
@@ -82,7 +102,7 @@ def convert_state_to_action_json(board):
         converted_details['characters'] = [
             {
                 'slot': str(character['position'] - 1),
-                'content_id': character,
+                'content_id': character['id'],
                 'cardattack': character['attack'],
                 'cardhealth': character['health'],
                 'is_golden': character['golden'],
