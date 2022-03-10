@@ -62,27 +62,51 @@ def apply_permutation(board, permute_map):
             position=permute_map.get(character.position, character.position),
         )
 
-    new_player_state = board_stated.p1.to_state()
-    assert board_stated.p1.id == "player"
 
-    new_player_board = []
-    new_player_state["hero"]["zone"] = "Hero"
-    new_player_board.append(Action.from_state(new_player_state["hero"]))
+    return convert_state_to_action_json(board_stated)
 
-    for character in new_player_state["characters"]:
-        character["zone"] = "Character"
-        new_player_board.append(Action.from_state(character))
 
-    for treasure in new_player_state["treasures"]:
-        treasure["zone"] = "Treasure"
-        new_player_board.append(Action.from_state(treasure))
+def convert_state_to_action_json(board):
+    converted_board = dict()
 
-    for spell in new_player_state["spells"]:
-        spell["zone"] = "Spell"
-        new_player_board.append(Action.from_state(spell))
+    for player, details in board.items():
+        converted_details = dict()
+        converted_details['treasures'] = [
+            {
+                "content_id": treasure,
+                "playerid": player
+            }
+            for treasure in details['treasures']
+        ]
 
-    return {
-        "player": new_player_board,
-        "opponent": board["opponent"],
-    }
+        converted_details['characters'] = [
+            {
+                'slot': str(character['position'] - 1),
+                'content_id': character,
+                'cardattack': character['attack'],
+                'cardhealth': character['health'],
+                'is_golden': character['golden'],
+                'cost': character['cost'],
+                'subtypes': character['tribes'],  # NOTE, does this get us the capitalization we desire?,
+                'playerid': player,
+            }
+            for character in details['characters']
+        ]
 
+        converted_details['hero'] = {
+            'hero': details['hero'],
+            'playerid': player,
+            'content_id': details['hero'],
+        }
+
+        converted_details['spells'] = [
+             {
+                 "playerid": player,
+                 "content_id": spell
+             }
+             for spell in details['spells']
+        ]
+
+        converted_board[player] = converted_details
+
+    return converted_board
