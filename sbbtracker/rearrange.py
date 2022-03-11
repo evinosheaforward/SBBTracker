@@ -73,8 +73,9 @@ def apply_permutation(board, permute_map):
         character["zone"] = "Character"
         new_player_board.append(Action.from_state(character))
 
-    for treasure in new_player_state["treasures"]:
+    for treasure, slot in zip(new_player_state["treasures"], ("0", "1", "2")):
         treasure["zone"] = "Treasure"
+        treasure["slot"] = slot
         new_player_board.append(Action.from_state(treasure))
     for spell in new_player_state["spells"]:
         spell["zone"] = "Spell"
